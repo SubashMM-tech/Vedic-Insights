@@ -1,5 +1,5 @@
 Flask
 flask-cors
 pydantic
-vedastro
+vedastro-sdk
 gunicorn
