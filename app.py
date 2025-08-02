@@ -10,8 +10,9 @@ CORS(app)
 
 # Define the structure of the incoming data to prevent errors
 class BirthData(BaseModel):
-    date: str  # Expecting "YYYY-MM-DD"
-    time: str  # Expecting "HH:MM"
+    name: str  # <-- ADD THIS LINE
+    date: str
+    time: str
     lat: float
     lng: float
 
