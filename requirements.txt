@@ -1,4 +1,6 @@
 Flask
-gunicorn
+flask-cors
+pydantic
 vedastro
+gunicorn
 lxml
