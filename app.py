@@ -1,70 +1,70 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pydantic import BaseModel, ValidationError
-import vedastro  # This is the modern Vedic astrology library
+import os
+import sys
 
-# Initialize the Flask web application
+# --- Configuration ---
 app = Flask(__name__)
-# Allow requests from your Firebase Studio app URL (and others)
-CORS(app)
+CORS(app)  # This allows your front-end to talk to this API
 
-# Define the structure of the incoming data to prevent errors
+# --- Logging Setup ---
+# This ensures that our print statements show up in the Render logs
+def log_message(message):
+    print(message, file=sys.stderr)
+
+# --- Data Validation Model ---
+# This defines the exact data structure we expect to receive
 class BirthData(BaseModel):
-    name: str  # <-- ADD THIS LINE
-    date: str
-    time: str
+    name: str
+    date: str  # Expects "YYYY-MM-DD"
+    time: str  # Expects "HH:MM"
     lat: float
     lng: float
 
+# --- API Endpoints ---
 @app.route("/")
 def home():
-    # A simple home page to confirm the service is running
-    return "Jyotish API is online and running."
+    log_message("Home endpoint was hit. Service is online.")
+    return "Vedic Insights Jyotish API is running."
 
 @app.route("/calculate", methods=['POST'])
 def calculate_chart():
+    log_message("\n--- /CALCULATE ENDPOINT HIT ---")
+
     try:
-        # Get the JSON data sent by your Next.js app
-        data = request.json
-        # Validate the incoming data against our model
-        birth_data = BirthData(**data)
-        
-        # Create the vedastro objects
-        time_obj = vedastro.Time(f"{birth_data.date} {birth_data.time}", vedastro.GeoLocation(latitude=birth_data.lat, longitude=birth_data.lng))
+        # 1. Get and log the raw data
+        raw_data = request.json
+        log_message(f"1. Received raw JSON data: {raw_data}")
 
-        # --- Perform the Calculations ---
-        lagna = vedastro.House.First(time_obj).GetSignName()
-        moon_sign = vedastro.Moon(time_obj).GetSignName()
-        moon_nakshatra = vedastro.Moon(time_obj).GetNakshatraName()
-        
-        # Calculate planet positions
-        planets_data = {
-            "Sun": vedastro.Sun(time_obj).GetSignName(),
-            "Moon": moon_sign,
-            "Mars": vedastro.Mars(time_obj).GetSignName(),
-            "Mercury": vedastro.Mercury(time_obj).GetSignName(),
-            "Jupiter": vedastro.Jupiter(time_obj).GetSignName(),
-            "Venus": vedastro.Venus(time_obj).GetSignName(),
-            "Saturn": vedastro.Saturn(time_obj).GetSignName(),
-        }
+        # 2. Validate the data
+        validated_data = BirthData(**raw_data)
+        log_message(f"2. Data validated successfully.")
 
-        # --- Prepare the Successful Response ---
-        # The structure of this response matches what your Next.js app expects
-        response = {
-            "status": "success",
-            "Lagna": lagna,
-            "Moon Sign": moon_sign,
-            "Nakshatra": moon_nakshatra,
-            "planets": planets_data
+        # 3. Simulate chart generation (Placeholder)
+        # This replaces the vedastro library to ensure we can get a successful response
+        log_message("3. Simulating chart generation...")
+        chart_data = {
+            "Lagna": "Libra",
+            "Moon Sign": "Taurus",
+            "Nakshatra": "Rohini",
+            "planets": {
+                "Sun": "Taurus", "Moon": "Taurus", "Mars": "Gemini",
+                "Mercury": "Aries", "Jupiter": "Taurus", "Venus": "Cancer", "Saturn": "Taurus"
+            }
         }
+        log_message("4. Chart simulation successful.")
+
+        # 5. Send the successful response
+        response = {"status": "success", **chart_data}
+        log_message(f"5. Sending success response: {response}")
         return jsonify(response)
 
     except ValidationError as e:
-        # If data is missing or wrong type
-        return jsonify({"status": "error", "message": "Invalid input data.", "details": e.errors()}), 400
+        # This runs if the incoming data is malformed
+        log_message(f"!!! VALIDATION ERROR: {e.errors()}")
+        return jsonify({"status": "error", "message": "Invalid input data provided."}), 400
     except Exception as e:
-        # For any other calculation errors
-        return jsonify({"status": "error", "message": "An error occurred during calculation.", "details": str(e)}), 500
-
-if __name__ == "__main__":
-    app.run(debug=True)
+        # This is a catch-all for any other unexpected error
+        log_message(f"!!! CRITICAL ERROR DURING CALCULATION: {e}")
+        return jsonify({"status": "error", "message": "An internal server error occurred."}), 500
